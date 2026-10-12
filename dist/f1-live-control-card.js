@@ -573,34 +573,46 @@ class F1ModeToggleCard extends HTMLElement {
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-left: 3px solid #ff3b30;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        padding: 4px 8px;
+        padding: 4px 6px;
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         align-items: center;
+        gap: 4px;
         cursor: pointer;
         user-select: none;
         transition: all 0.25s ease;
         box-sizing: border-box;
+        overflow: hidden;
       }
       ha-card.replay-active {
         border-left: 3px solid #34c759;
       }
       .pill {
         text-align: center;
-        padding: 5px 12px;
+        padding: 4px 6px;
         border-radius: 999px;
-        font-family: 'Formula1 Wide', 'Formula1 Display', sans-serif !important;
+        font-family: 'Formula1 Display', 'Formula1 Wide', sans-serif !important;
         font-weight: 700;
-        font-size: 10px;
-        letter-spacing: 0.05em;
-        display: flex;
+        font-size: 9.5px;
+        letter-spacing: 0.02em;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         text-transform: uppercase;
+        white-space: nowrap !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
         transition: all 0.25s ease;
         color: #64748b;
         background: transparent;
         border: 1px solid rgba(255, 255, 255, 0.06);
+        min-width: 0;
+        line-height: 1.1;
+      }
+      .pill span {
+        white-space: nowrap !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .pill.active {
         color: #ffffff;
@@ -627,12 +639,13 @@ class F1ModeToggleCard extends HTMLElement {
       }
       .pulse-dot {
         display: inline-block;
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: currentColor;
         box-shadow: 0 0 6px currentColor;
-        margin-right: 6px;
+        margin-right: 4px;
+        flex-shrink: 0;
         animation: pulse-dot 1.5s infinite ease-in-out;
       }
       @keyframes pulse-dot {
@@ -643,7 +656,8 @@ class F1ModeToggleCard extends HTMLElement {
         width: 1px;
         height: 18px;
         background: rgba(255, 255, 255, 0.08);
-        margin: 0 4px;
+        margin: 0 2px;
+        flex-shrink: 0;
       }
     `;
 
