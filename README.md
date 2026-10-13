@@ -89,6 +89,10 @@ entity: input_boolean.f1_replay_mode
 status_entity: sensor.f1_replay_status
 ```
 
+## 🏎️ Complete Pit Wall Dashboard
+
+For the complete production layout, full YAML configuration, and matching modular styles for `custom:f1-sensor-card`, visit the **[f1-pitwall-dashboard](https://github.com/paulgbrichardson/f1-pitwall-dashboard)** showcase repository.
+
 ---
 
 ## License
