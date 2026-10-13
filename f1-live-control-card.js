@@ -1,13 +1,15 @@
 /**
  * F1 Live Control Card (f1-live-control-card)
- * Version: 2.0.1
+ * Version: 2.1.0
  * 
  * Custom Lovelace Card for Formula 1 Live TV Session Synchronisation & Delay Calibration.
- * Unified with the Nicxe/f1_sensor Weekend Hub card design architecture:
- * - Shared .wh-shell triple-gradient carbon chassis & 4px red left indicator stripe
- * - Authentic Formula 1 Display typography with responsive clamp scaling
- * - Mobile container queries (@container max-width: 680px) for seamless pitwall & phone viewports
- * - Standardized status pill badge (.wh-live-badge) with exact Weekend Hub success tokens & solid glowing dot
+ * Exact Match to Nicxe/f1_sensor Replay Control Card (F1ReplayControlCard):
+ * - Unified carbon chassis (.rc-card) with subtle red top-edge gradient
+ * - Typography matching Replay Card (.rc-header, .rc-title 14px 600 weight, .rc-subtitle 11px)
+ * - Standardized replay status pill badge (.rc-status-pill) with official color tokens, live pulse, and <ha-icon>
+ * - Authentic Replay Card action buttons (.rc-button): 36px height, 8px radius, 10px bold uppercase, <ha-icon> 17px
+ * - Dedicated Delay Hero Panel (.rc-status-details) with discrete nudge buttons (.rc-button.nudge-btn)
+ * - Authentic Reference dropdown (.rc-select-field, .rc-field-label, .rc-select-wrap)
  * Includes companion F1ModeToggleCard (custom:f1-mode-toggle-card) for seamless Live / Replay session switching.
  */
 
@@ -58,7 +60,7 @@ class F1LiveControlCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      kicker: 'SESSION TELEMETRY SYNC',
+      kicker: '',
       title: 'LIVE TV SYNCHRONISATION',
       subtitle: 'DELAY CALIBRATION & OFFSET',
       delay_entity: 'number.f1_live_delay',
@@ -70,7 +72,7 @@ class F1LiveControlCard extends HTMLElement {
 
   setConfig(config) {
     this._config = Object.assign({
-      kicker: 'SESSION TELEMETRY SYNC',
+      kicker: '',
       title: 'LIVE TV SYNCHRONISATION',
       subtitle: 'DELAY CALIBRATION & OFFSET',
       delay_entity: 'number.f1_live_delay',
@@ -90,53 +92,32 @@ class F1LiveControlCard extends HTMLElement {
 
   _renderBase() {
     const style = `
+      @keyframes replayPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.64; }
+      }
+
       :host {
         display: block;
         width: 100%;
         box-sizing: border-box;
-        font-family: var(--f1-card-body-font-family, 'Formula1 Display', sans-serif);
 
-        /* Nicxe/f1_sensor Weekend Hub Theme Tokens */
-        --f1-card-bg: #0b0b0d;
-        --f1-card-bg-soft: #131315;
-        --f1-card-bg-end: #0a0a0a;
-        --f1-card-text: #f5f5f5;
-        --f1-card-muted: rgba(255, 255, 255, 0.65);
-        --f1-card-soft: rgba(255, 255, 255, 0.42);
-        --f1-card-border: rgba(255, 255, 255, 0.08);
-        --f1-card-divider: rgba(255, 255, 255, 0.08);
-        --f1-card-divider-strong: rgba(255, 255, 255, 0.12);
-        --f1-card-chip: rgba(255, 255, 255, 0.06);
-        --f1-card-panel: rgba(255, 255, 255, 0.04);
-        --f1-card-panel-soft: rgba(255, 255, 255, 0.025);
-        --f1-card-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-        --f1-card-display-font-family: 'Formula1 Display', sans-serif;
-        --f1-card-body-font-family: 'Formula1 Display', sans-serif;
-        --f1-card-label-font-family: 'Formula1 Display', sans-serif;
+        /* Replay Card Tokens matching F1ReplayControlCard */
+        --rc-bg: var(--f1-card-bg, #0b0b0d);
+        --rc-bg-soft: var(--f1-card-bg-soft, #131315);
+        --rc-bg-end: var(--f1-card-bg-end, #0a0a0a);
+        --rc-border: var(--f1-card-border, rgba(255, 255, 255, 0.08));
+        --rc-divider: var(--f1-card-divider, rgba(255, 255, 255, 0.08));
+        --rc-text: var(--f1-card-text, #f5f5f5);
+        --rc-muted: var(--f1-card-muted, rgba(255, 255, 255, 0.65));
+        --rc-soft: var(--f1-card-soft, rgba(255, 255, 255, 0.42));
+        --rc-chip: var(--f1-card-chip, rgba(255, 255, 255, 0.06));
+        --rc-panel: var(--f1-card-panel, rgba(255, 255, 255, 0.04));
+        --rc-shadow: var(--f1-card-compact-shadow, 0 16px 40px rgba(0, 0, 0, 0.35));
 
+        --f1-card-display-font-family: 'Formula1 Wide', 'Formula1 Display', Arial, sans-serif;
+        --f1-card-body-font-family: 'Formula1 Display', 'Titillium Web', Arial, sans-serif;
         --f1-marker-red: #ff3b30;
-        --f1-marker-yellow: #ffd60a;
-        --f1-marker-green: #34c759;
-        --f1-marker-blue: #0a84ff;
-        --f1-marker-purple: #8b5cf6;
-        --f1-marker-orange: #ff9500;
-
-        --f1-status-info: #38bdf8;
-        --f1-status-info-text: #bfdbfe;
-        --f1-status-info-bg: rgba(59, 130, 246, 0.14);
-        --f1-status-info-border: rgba(96, 165, 250, 0.28);
-        --f1-status-warning: #f59e0b;
-        --f1-status-warning-text: #fde68a;
-        --f1-status-warning-bg: rgba(251, 191, 36, 0.10);
-        --f1-status-warning-border: rgba(251, 191, 36, 0.24);
-        --f1-status-success: #34c759;
-        --f1-status-success-text: #86efac;
-        --f1-status-success-bg: rgba(52, 199, 89, 0.16);
-        --f1-status-success-border: rgba(52, 199, 89, 0.34);
-        --f1-status-danger: #ff3b30;
-        --f1-status-danger-text: #fca5a5;
-        --f1-status-danger-bg: rgba(255, 59, 48, 0.14);
-        --f1-status-danger-border: rgba(255, 59, 48, 0.32);
       }
 
       * {
@@ -146,389 +127,393 @@ class F1LiveControlCard extends HTMLElement {
       ha-card {
         padding: 0;
         background: transparent;
-        border: 0;
         box-shadow: none;
+        border: none;
       }
 
-      /* Authentic Weekend Hub Outer Shell (.wh-shell) */
-      .wh-shell {
-        position: relative;
-        overflow: hidden;
-        border: 1px solid var(--f1-card-border);
+      /* Replay Card Container Architecture (.rc-card) */
+      .rc-card {
+        font-family: var(--f1-card-body-font-family, 'Formula1 Display', 'Titillium Web', Arial, sans-serif);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
         border-radius: var(--ha-card-border-radius, 12px);
         background:
-          linear-gradient(110deg, transparent 0 47%, var(--f1-card-panel-soft) 47% 48%, transparent 48% 100%),
-          radial-gradient(circle at 93% -8%, rgba(255, 59, 48, 0.22), transparent 38%),
-          linear-gradient(155deg, var(--f1-card-bg) 0%, var(--f1-card-bg-soft) 68%, var(--f1-card-bg-end) 100%);
-        box-shadow: var(--f1-card-shadow);
-        color: var(--f1-card-text);
+          linear-gradient(90deg, rgba(225, 6, 0, 0.18), transparent 34%) top left / 100% 2px no-repeat,
+          radial-gradient(circle at 14% 10%, var(--rc-chip), transparent 44%),
+          linear-gradient(160deg, var(--rc-bg) 0%, var(--rc-bg-soft) 58%, var(--rc-bg-end) 100%);
+        border: 1px solid var(--rc-border);
+        box-shadow: var(--rc-shadow);
+        color: var(--rc-text);
         container-type: inline-size;
       }
 
-      .wh-shell::before {
-        content: '';
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 4px;
-        background: var(--f1-marker-red);
-        z-index: 5;
-      }
-
-      /* Weekend Hub Header Architecture (.wh-header) */
-      .wh-header {
+      /* Replay Card Header (.rc-header) */
+      .rc-header {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-        gap: 16px;
-        padding: clamp(14px, 2.5vw, 22px) clamp(16px, 3.2vw, 28px) 14px;
-        border-bottom: 1px solid var(--f1-card-divider);
+        gap: 10px;
+        align-items: center;
       }
 
-      .wh-title-wrap {
-        display: flex;
-        flex-direction: column;
+      .rc-title-group {
         min-width: 0;
-      }
-
-      .wh-kicker {
-        color: var(--f1-marker-red);
-        font-family: var(--f1-card-label-font-family, 'Formula1 Display', sans-serif);
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-      }
-
-      .wh-title {
-        margin: 5px 0 2px;
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: clamp(20px, 3.2vw, 32px);
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1;
-        text-transform: uppercase;
-        color: var(--f1-card-text);
-      }
-
-      .wh-subtitle {
-        color: var(--f1-card-muted);
-        font-family: var(--f1-card-body-font-family, 'Formula1 Display', sans-serif);
-        font-size: 11px;
-        line-height: 1.4;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-
-      .wh-subtitle:empty,
-      .wh-kicker:empty {
-        display: none;
-      }
-
-      /* Standardized Weekend Hub Status Badge (.wh-live-badge) */
-      .wh-live-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        min-height: 26px;
-        padding: 0 10px;
-        border: 1px solid var(--f1-card-divider-strong);
-        border-radius: 999px;
-        background: var(--f1-card-chip);
-        color: var(--f1-card-muted);
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-
-      .wh-live-badge.live {
-        color: var(--f1-status-success-text);
-        background: var(--f1-status-success-bg);
-        border-color: var(--f1-status-success-border);
-      }
-
-      .wh-live-badge.calibrating {
-        color: var(--f1-status-warning-text);
-        background: var(--f1-status-warning-bg);
-        border-color: var(--f1-status-warning-border);
-      }
-
-      .wh-live-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: currentColor;
-        box-shadow: 0 0 10px currentColor;
-        flex-shrink: 0;
-      }
-
-      /* Container Query Mobile Adaptation */
-      @container (max-width: 680px) {
-        .wh-header {
-          grid-template-columns: 1fr;
-          gap: 10px;
-          padding: 14px 16px 12px;
-        }
-        .wh-live-badge {
-          align-self: flex-start;
-        }
-        .wh-title {
-          font-size: 22px;
-        }
-      }
-
-      .wh-body {
-        padding: clamp(14px, 2.5vw, 20px) clamp(16px, 3.2vw, 24px);
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-
-      .delay-hero {
-        background: var(--f1-card-panel);
-        border: 1px solid var(--f1-card-divider);
-        border-radius: 10px;
-        padding: 14px 18px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .delay-value-box {
         display: flex;
         flex-direction: column;
         gap: 2px;
       }
 
-      .delay-label {
-        font-family: var(--f1-card-label-font-family, 'Formula1 Display', sans-serif);
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: var(--f1-card-muted);
-        font-weight: 800;
-      }
-
-      .delay-number {
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: #fff;
-        line-height: 1;
-        letter-spacing: -0.02em;
-        font-feature-settings: 'tnum';
-      }
-
-      .delay-unit {
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: 1.1rem;
-        font-weight: 800;
+      .rc-kicker {
         color: var(--f1-marker-red);
-        margin-left: 4px;
-      }
-
-      .nudge-group {
-        display: flex;
-        gap: 6px;
-      }
-
-      .nudge-btn {
-        background: var(--f1-card-chip);
-        border: 1px solid var(--f1-card-divider-strong);
-        color: var(--f1-card-text);
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
+        font-family: var(--f1-card-body-font-family, 'Formula1 Display', sans-serif);
+        font-size: 8.5px;
         font-weight: 800;
-        font-size: 11px;
-        letter-spacing: 0.05em;
-        padding: 6px 12px;
-        border-radius: 999px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .nudge-btn:hover {
-        background: color-mix(in srgb, var(--f1-marker-red) 20%, transparent);
-        border-color: color-mix(in srgb, var(--f1-marker-red) 60%, transparent);
-        color: #fff;
-        transform: translateY(-1px);
-      }
-
-      .nudge-btn:active {
-        transform: translateY(1px);
-      }
-
-      .controls-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 2px;
-      }
-
-      @container (max-width: 440px) {
-        .controls-grid {
-          grid-template-columns: 1fr;
-          gap: 10px;
-        }
-      }
-
-      .action-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        min-height: 48px;
-        padding: 12px 18px;
-        border-radius: 999px;
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-weight: 800;
-        font-size: 13px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-        border: none;
-        outline: none;
-        box-sizing: border-box;
-        width: 100%;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
+        line-height: 1.1;
       }
 
-      .action-btn .btn-icon {
-        font-size: 17px;
+      .rc-kicker:empty {
+        display: none;
+      }
+
+      .rc-title {
+        font-family: var(--f1-card-display-font-family, 'Formula1 Wide', 'Formula1 Display', Arial, sans-serif);
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.018em;
+        line-height: 1.14;
+        overflow-wrap: anywhere;
+        text-transform: uppercase;
+        color: var(--rc-text);
+      }
+
+      .rc-subtitle {
+        color: var(--rc-muted);
+        font-family: var(--f1-card-body-font-family, 'Formula1 Display', 'Titillium Web', Arial, sans-serif);
+        font-size: 11px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        text-transform: uppercase;
+      }
+
+      .rc-subtitle:empty {
+        display: none;
+      }
+
+      /* Standardized Replay Status Pill (.rc-status-pill) */
+      .rc-status-pill {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-      }
-
-      .btn-calibrate {
-        background: var(--f1-status-info-bg);
-        color: var(--f1-status-info-text);
-        border: 1px solid var(--f1-status-info-border);
-        box-shadow: 0 4px 14px rgba(56, 189, 248, 0.12);
-      }
-
-      .btn-calibrate.active {
-        background: var(--f1-status-warning-bg);
-        color: var(--f1-status-warning-text);
-        border: 1px solid var(--f1-status-warning-border);
-        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.22);
-      }
-
-      .btn-calibrate:hover {
-        filter: brightness(1.15);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.22);
-      }
-
-      .btn-calibrate:active {
-        transform: translateY(1px);
-      }
-
-      .btn-match {
-        background: linear-gradient(135deg, #ff3b30 0%, #e10600 100%);
-        color: #ffffff;
-        border: 1px solid rgba(255, 59, 48, 0.6);
-        box-shadow: 0 4px 16px rgba(225, 6, 0, 0.38);
-      }
-
-      .btn-match:hover {
-        background: linear-gradient(135deg, #ff5247 0%, #ff1812 100%);
-        box-shadow: 0 6px 22px rgba(225, 6, 0, 0.55);
-        transform: translateY(-2px);
-      }
-
-      .btn-match:active {
-        transform: translateY(1px);
-      }
-
-      .reference-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 14px;
-        background: var(--f1-card-panel);
-        border: 1px solid var(--f1-card-divider);
-        border-radius: 10px;
-      }
-
-      .reference-label {
-        font-family: var(--f1-card-label-font-family, 'Formula1 Display', sans-serif);
-        font-size: 10px;
-        color: var(--f1-card-muted);
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-      }
-
-      .reference-select {
-        background: var(--f1-card-bg-soft);
-        color: var(--f1-card-text);
-        border: 1px solid var(--f1-card-divider-strong);
+        gap: 6px;
+        min-height: 24px;
+        padding: 3px 9px;
         border-radius: 999px;
-        padding: 5px 14px;
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: 11px;
+        border: 1px solid color-mix(in srgb, var(--rc-status-color, var(--rc-soft)) 46%, transparent);
+        background: color-mix(in srgb, var(--rc-status-color, var(--rc-soft)) 14%, transparent);
+        color: var(--rc-status-color, var(--rc-text));
         font-weight: 700;
-        letter-spacing: 0.04em;
-        outline: none;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        text-transform: uppercase;
+      }
+
+      .rc-status-pill ha-icon {
+        --mdc-icon-size: 15px;
+        flex-shrink: 0;
+      }
+
+      .rc-status-pill.playing,
+      .rc-status-pill.live {
+        --rc-status-color: #34c759;
+        animation: replayPulse 1.6s ease-in-out infinite;
+      }
+
+      .rc-status-pill.calibrating {
+        --rc-status-color: #f59e0b;
+        animation: replayPulse 1.2s ease-in-out infinite;
+      }
+
+      /* Status Details / Delay Hero Section (.rc-status-details) */
+      .rc-status-details {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 8px 12px;
+        border: 1px solid var(--rc-divider);
+        border-radius: 8px;
+        background: var(--rc-panel);
+        align-items: center;
+      }
+
+      .rc-detail {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .rc-detail-label {
+        color: var(--rc-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .rc-delay-readout {
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+      }
+
+      .rc-delay-num {
+        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--rc-text);
+        line-height: 1;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .rc-delay-unit {
+        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
+        font-size: 12px;
+        font-weight: 800;
+        color: #e10600;
+        margin-left: 2px;
+      }
+
+      .rc-nudge-group {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+
+      /* Replay Action Buttons (.rc-button) */
+      .rc-controls-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+
+      .rc-button {
+        min-width: 0;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border: 1px solid var(--rc-divider);
+        border-radius: 8px;
+        background: var(--rc-panel);
+        color: var(--rc-text);
+        font: inherit;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
         cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .rc-button ha-icon {
+        --mdc-icon-size: 17px;
+        flex: 0 0 auto;
+      }
+
+      .rc-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, #e10600 45%, var(--rc-divider));
+        background: color-mix(in srgb, #e10600 10%, var(--rc-panel));
+      }
+
+      .rc-button:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .rc-button:disabled {
+        opacity: 0.42;
+        cursor: not-allowed;
+      }
+
+      .rc-button.primary {
+        background: linear-gradient(135deg, #e10600, #9f0500);
+        border-color: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(225, 6, 0, 0.28);
+      }
+
+      .rc-button.primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #ff1812, #b80700);
+        border-color: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 4px 12px rgba(225, 6, 0, 0.4);
+      }
+
+      .rc-button.load {
+        background: color-mix(in srgb, #38bdf8 15%, var(--rc-panel));
+        border-color: color-mix(in srgb, #38bdf8 34%, var(--rc-divider));
+        color: color-mix(in srgb, #38bdf8 84%, var(--rc-text));
+      }
+
+      .rc-button.load:hover:not(:disabled) {
+        background: color-mix(in srgb, #38bdf8 25%, var(--rc-panel));
+        border-color: color-mix(in srgb, #38bdf8 50%, var(--rc-divider));
+      }
+
+      .rc-button.calibrating {
+        background: color-mix(in srgb, #f59e0b 16%, var(--rc-panel));
+        border-color: color-mix(in srgb, #f59e0b 38%, var(--rc-divider));
+        color: #fde68a;
+      }
+
+      .rc-button.calibrating:hover:not(:disabled) {
+        background: color-mix(in srgb, #f59e0b 26%, var(--rc-panel));
+        border-color: color-mix(in srgb, #f59e0b 55%, var(--rc-divider));
+      }
+
+      .rc-button.nudge-btn {
+        min-height: 28px;
+        padding: 0 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .rc-button-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Replay Select Field (.rc-select-field) */
+      .rc-select-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .rc-field-label {
+        color: var(--rc-muted);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .rc-select-wrap {
+        position: relative;
+        min-width: 0;
+      }
+
+      .rc-select-wrap::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        border-right: 2px solid var(--rc-muted);
+        border-bottom: 2px solid var(--rc-muted);
+        transform: translateY(-65%) rotate(45deg);
+        pointer-events: none;
+      }
+
+      select {
+        width: 100%;
+        height: 38px;
+        appearance: none;
+        border: 1px solid var(--rc-divider);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--rc-panel) 76%, transparent);
+        color: var(--rc-text);
+        font: inherit;
+        font-size: 12px;
+        line-height: 1.2;
+        padding: 0 32px 0 10px;
+        outline: none;
+        min-width: 0;
+        text-overflow: ellipsis;
+        cursor: pointer;
+      }
+
+      select:focus {
+        border-color: color-mix(in srgb, #e10600 70%, var(--rc-divider));
+        box-shadow: 0 0 0 2px rgba(225, 6, 0, 0.16);
+      }
+
+      /* Responsive Layout */
+      @container (max-width: 420px) {
+        .rc-status-details {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        .rc-controls-grid {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
       }
     `;
 
     this.shadowRoot.innerHTML = `
       <style>${style}</style>
       <ha-card>
-        <div class="wh-shell">
-          <div class="wh-header">
-            <div class="wh-title-wrap">
-              <div class="wh-kicker" id="kicker">${this._config.kicker || ''}</div>
-              <div class="wh-title" id="title">${this._config.title || 'LIVE TV SYNCHRONISATION'}</div>
-              <div class="wh-subtitle" id="subtitle">${this._config.subtitle || ''}</div>
+        <div class="rc-card">
+          <div class="rc-header">
+            <div class="rc-title-group">
+              <div class="rc-kicker" id="kicker">${this._config.kicker || ''}</div>
+              <div class="rc-title" id="title">${this._config.title || 'LIVE TV SYNCHRONISATION'}</div>
+              <div class="rc-subtitle" id="subtitle">${this._config.subtitle || 'DELAY CALIBRATION & OFFSET'}</div>
             </div>
-            <div class="wh-live-badge live" id="status-pill">
-              <span class="wh-live-dot"></span>
+            <div class="rc-status-pill playing" id="status-pill">
+              <ha-icon icon="mdi:broadcast" id="status-icon"></ha-icon>
               <span id="status-text">LIVE SYNC</span>
             </div>
           </div>
 
-          <div class="wh-body">
-            <div class="delay-hero">
-              <div class="delay-value-box">
-                <span class="delay-label">Current Broadcast Delay</span>
-                <div class="delay-number">
-                  <span id="delay-num">--</span><span class="delay-unit">s</span>
-                </div>
-              </div>
-              <div class="nudge-group">
-                <button class="nudge-btn" data-delta="-5">-5s</button>
-                <button class="nudge-btn" data-delta="-1">-1s</button>
-                <button class="nudge-btn" data-delta="1">+1s</button>
-                <button class="nudge-btn" data-delta="5">+5s</button>
+          <div class="rc-status-details">
+            <div class="rc-detail">
+              <span class="rc-detail-label">Current Broadcast Delay</span>
+              <div class="rc-delay-readout">
+                <span class="rc-delay-num" id="delay-num">--</span><span class="rc-delay-unit">s</span>
               </div>
             </div>
-
-            <div class="controls-grid">
-              <button class="action-btn btn-calibrate" id="btn-calibrate">
-                <span class="btn-icon">⏱️</span>
-                <span id="calibrate-text">Start Calibration</span>
-              </button>
-              <button class="action-btn btn-match" id="btn-match">
-                <span class="btn-icon">🔒</span>
-                <span>Match Delay (TV Now)</span>
-              </button>
-            </div>
-
-            <div class="reference-row">
-              <span class="reference-label">Reference Mode</span>
-              <select class="reference-select" id="reference-select">
-                <option value="Session live">Session live</option>
-              </select>
+            <div class="rc-nudge-group">
+              <button class="rc-button nudge-btn" data-delta="-5">-5s</button>
+              <button class="rc-button nudge-btn" data-delta="-1">-1s</button>
+              <button class="rc-button nudge-btn" data-delta="1">+1s</button>
+              <button class="rc-button nudge-btn" data-delta="5">+5s</button>
             </div>
           </div>
+
+          <div class="rc-controls-grid">
+            <button class="rc-button load" id="btn-calibrate">
+              <ha-icon icon="mdi:timer-outline" id="calibrate-icon"></ha-icon>
+              <span class="rc-button-label" id="calibrate-text">START CALIBRATION</span>
+            </button>
+            <button class="rc-button primary" id="btn-match">
+              <ha-icon icon="mdi:lock"></ha-icon>
+              <span class="rc-button-label">MATCH DELAY (TV NOW)</span>
+            </button>
+          </div>
+
+          <label class="rc-select-field">
+            <span class="rc-field-label">Reference Mode</span>
+            <span class="rc-select-wrap">
+              <select id="reference-select">
+                <option value="Session live">Session live</option>
+              </select>
+            </span>
+          </label>
         </div>
       </ha-card>
     `;
@@ -597,25 +582,34 @@ class F1LiveControlCard extends HTMLElement {
 
     const calState = this._hass.states[this._config.calibration_entity];
     const calBtn = this.shadowRoot.getElementById('btn-calibrate');
+    const calIcon = this.shadowRoot.getElementById('calibrate-icon');
     const calText = this.shadowRoot.getElementById('calibrate-text');
     const statusPill = this.shadowRoot.getElementById('status-pill');
+    const statusIcon = this.shadowRoot.getElementById('status-icon');
     const statusText = this.shadowRoot.getElementById('status-text');
 
     const isActive = calState && calState.state === 'on';
 
     if (calBtn) {
-      calBtn.className = 'action-btn btn-calibrate' + (isActive ? ' active' : '');
-      if (calText) {
-        calText.textContent = isActive ? 'Calibration Active (Stop)' : 'Start Calibration';
+      if (isActive) {
+        calBtn.className = 'rc-button calibrating';
+        if (calIcon) calIcon.setAttribute('icon', 'mdi:timer-sand');
+        if (calText) calText.textContent = 'STOP CALIBRATION';
+      } else {
+        calBtn.className = 'rc-button load';
+        if (calIcon) calIcon.setAttribute('icon', 'mdi:timer-outline');
+        if (calText) calText.textContent = 'START CALIBRATION';
       }
     }
 
     if (statusPill && statusText) {
       if (isActive) {
-        statusPill.className = 'wh-live-badge calibrating';
+        statusPill.className = 'rc-status-pill calibrating';
+        if (statusIcon) statusIcon.setAttribute('icon', 'mdi:timer-outline');
         statusText.textContent = 'CALIBRATING';
       } else {
-        statusPill.className = 'wh-live-badge live';
+        statusPill.className = 'rc-status-pill playing';
+        if (statusIcon) statusIcon.setAttribute('icon', 'mdi:broadcast');
         statusText.textContent = 'LIVE SYNC';
       }
     }
@@ -1131,7 +1125,7 @@ if (!customElements.get('f1-live-control-card')) {
     preview: true,
   });
   console.info(
-    '%c F1-LIVE-CONTROL-CARD %c v2.0.1 ',
+    '%c F1-LIVE-CONTROL-CARD %c v2.1.0 ',
     'color: white; background: #e10600; font-weight: 700;',
     'color: #040711; background: #38bdf8; font-weight: 700;'
   );
