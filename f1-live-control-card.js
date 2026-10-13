@@ -1,6 +1,6 @@
 /**
  * F1 Live Control Card (f1-live-control-card)
- * Version: 2.0.0
+ * Version: 2.0.1
  * 
  * Custom Lovelace Card for Formula 1 Live TV Session Synchronisation & Delay Calibration.
  * Unified with the Nicxe/f1_sensor Weekend Hub card design architecture:
@@ -363,11 +363,13 @@ class F1LiveControlCard extends HTMLElement {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
+        margin-top: 2px;
       }
 
-      @container (max-width: 480px) {
+      @container (max-width: 440px) {
         .controls-grid {
           grid-template-columns: 1fr;
+          gap: 10px;
         }
       }
 
@@ -375,48 +377,68 @@ class F1LiveControlCard extends HTMLElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 10px 16px;
+        gap: 10px;
+        min-height: 48px;
+        padding: 12px 18px;
         border-radius: 999px;
         font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
         font-weight: 800;
-        font-size: 11px;
+        font-size: 13px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
         border: none;
         outline: none;
+        box-sizing: border-box;
+        width: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      .action-btn .btn-icon {
+        font-size: 17px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .btn-calibrate {
         background: var(--f1-status-info-bg);
         color: var(--f1-status-info-text);
         border: 1px solid var(--f1-status-info-border);
+        box-shadow: 0 4px 14px rgba(56, 189, 248, 0.12);
       }
 
       .btn-calibrate.active {
         background: var(--f1-status-warning-bg);
         color: var(--f1-status-warning-text);
         border: 1px solid var(--f1-status-warning-border);
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.22);
       }
 
       .btn-calibrate:hover {
         filter: brightness(1.15);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.22);
+      }
+
+      .btn-calibrate:active {
+        transform: translateY(1px);
       }
 
       .btn-match {
-        background: var(--f1-marker-red);
+        background: linear-gradient(135deg, #ff3b30 0%, #e10600 100%);
         color: #ffffff;
-        border: 1px solid color-mix(in srgb, var(--f1-marker-red) 60%, transparent);
-        box-shadow: 0 4px 14px rgba(255, 59, 48, 0.35);
+        border: 1px solid rgba(255, 59, 48, 0.6);
+        box-shadow: 0 4px 16px rgba(225, 6, 0, 0.38);
       }
 
       .btn-match:hover {
-        background: #ff5247;
-        box-shadow: 0 6px 18px rgba(255, 59, 48, 0.5);
-        transform: translateY(-1px);
+        background: linear-gradient(135deg, #ff5247 0%, #ff1812 100%);
+        box-shadow: 0 6px 22px rgba(225, 6, 0, 0.55);
+        transform: translateY(-2px);
       }
 
       .btn-match:active {
@@ -491,11 +513,11 @@ class F1LiveControlCard extends HTMLElement {
 
             <div class="controls-grid">
               <button class="action-btn btn-calibrate" id="btn-calibrate">
-                <span>⏱️</span>
+                <span class="btn-icon">⏱️</span>
                 <span id="calibrate-text">Start Calibration</span>
               </button>
               <button class="action-btn btn-match" id="btn-match">
-                <span>🔒</span>
+                <span class="btn-icon">🔒</span>
                 <span>Match Delay (TV Now)</span>
               </button>
             </div>
@@ -777,10 +799,10 @@ class F1ModeToggleCard extends HTMLElement {
     const style = `
       :host {
         display: block;
-        font-family: 'Formula1 Wide', 'Formula1 Display', sans-serif !important;
+        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif) !important;
       }
       ha-card {
-        height: 44px;
+        height: 46px;
         border-radius: 12px;
         background:
           radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.04), transparent 44%),
@@ -792,7 +814,7 @@ class F1ModeToggleCard extends HTMLElement {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         cursor: pointer;
         user-select: none;
         transition: all 0.25s ease;
@@ -804,12 +826,13 @@ class F1ModeToggleCard extends HTMLElement {
       }
       .pill {
         text-align: center;
-        padding: 4px 6px;
+        min-height: 36px;
+        padding: 6px 10px;
         border-radius: 999px;
-        font-family: 'Formula1 Display', 'Formula1 Wide', sans-serif !important;
-        font-weight: 700;
-        font-size: 9.5px;
-        letter-spacing: 0.02em;
+        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif) !important;
+        font-weight: 800;
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -823,6 +846,9 @@ class F1ModeToggleCard extends HTMLElement {
         border: 1px solid rgba(255, 255, 255, 0.06);
         min-width: 0;
         line-height: 1.1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
       }
       .pill span {
         white-space: nowrap !important;
@@ -1105,7 +1131,7 @@ if (!customElements.get('f1-live-control-card')) {
     preview: true,
   });
   console.info(
-    '%c F1-LIVE-CONTROL-CARD %c v2.0.0 ',
+    '%c F1-LIVE-CONTROL-CARD %c v2.0.1 ',
     'color: white; background: #e10600; font-weight: 700;',
     'color: #040711; background: #38bdf8; font-weight: 700;'
   );
