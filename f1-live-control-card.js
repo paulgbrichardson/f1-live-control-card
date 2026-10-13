@@ -793,101 +793,154 @@ class F1ModeToggleCard extends HTMLElement {
     const style = `
       :host {
         display: block;
+        width: 100%;
+        box-sizing: border-box;
         font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif) !important;
       }
+
+      * {
+        box-sizing: border-box;
+      }
+
       ha-card {
         height: 46px;
-        border-radius: 12px;
+        min-height: 46px;
+        border-radius: var(--ha-card-border-radius, 12px);
         background:
           radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.04), transparent 44%),
           linear-gradient(160deg, #0b0b0d 0%, #131315 58%, #0a0a0a 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-left: 3px solid #ff3b30;
+        border-left: 4px solid var(--f1-mode-accent, #ff3b30);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        padding: 4px 6px;
+        padding: 4px;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        align-items: center;
+        grid-template-columns: 1fr 1fr;
         gap: 6px;
+        align-items: stretch;
         cursor: pointer;
         user-select: none;
-        transition: all 0.25s ease;
+        transition: border-left-color 0.25s ease;
         box-sizing: border-box;
         overflow: hidden;
+        container-type: inline-size;
       }
+
       ha-card.replay-active {
-        border-left: 3px solid #34c759;
+        --f1-mode-accent: #34c759;
       }
+
       .pill {
-        text-align: center;
+        min-width: 0;
+        height: 100%;
         min-height: 36px;
-        padding: 6px 10px;
+        padding: 0 10px;
         border-radius: 999px;
         font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif) !important;
         font-weight: 800;
-        font-size: 10.5px;
+        font-size: 11px;
         letter-spacing: 0.04em;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
         text-transform: uppercase;
         white-space: nowrap !important;
         overflow: hidden;
         text-overflow: ellipsis;
-        transition: all 0.25s ease;
-        color: #64748b;
-        background: transparent;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        color: rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.06);
-        min-width: 0;
-        line-height: 1.1;
+        cursor: pointer;
+        box-sizing: border-box;
+        line-height: 1;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
       }
+
       .pill span {
         white-space: nowrap !important;
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
+      .pill:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.07);
+        color: rgba(255, 255, 255, 0.75);
+      }
+
       .pill.active {
         color: #ffffff;
       }
+
       .pill.active.live {
-        color: #ff3b30;
-        background: color-mix(in srgb, #ff3b30 14%, transparent);
-        border: 1px solid color-mix(in srgb, #ff3b30 46%, transparent);
+        color: #ffffff;
+        background: color-mix(in srgb, #ff3b30 20%, rgba(255, 255, 255, 0.04));
+        border: 1px solid color-mix(in srgb, #ff3b30 65%, transparent);
+        box-shadow: 0 2px 10px rgba(255, 59, 48, 0.3);
       }
+
       .pill.active.replay {
-        color: #86efac;
-        background: rgba(52, 199, 89, 0.16);
-        border: 1px solid rgba(52, 199, 89, 0.34);
+        color: #ffffff;
+        background: color-mix(in srgb, #34c759 20%, rgba(255, 255, 255, 0.04));
+        border: 1px solid color-mix(in srgb, #34c759 65%, transparent);
+        box-shadow: 0 2px 10px rgba(52, 199, 89, 0.3);
       }
+
       .pill.active.replay.seeking {
-        color: #ff9500;
-        background: color-mix(in srgb, #ff9500 14%, transparent);
-        border: 1px solid color-mix(in srgb, #ff9500 46%, transparent);
+        color: #ffffff;
+        background: color-mix(in srgb, #ff9500 20%, rgba(255, 255, 255, 0.04));
+        border: 1px solid color-mix(in srgb, #ff9500 65%, transparent);
+        box-shadow: 0 2px 10px rgba(255, 149, 0, 0.3);
       }
+
       .pill.active.replay.paused {
-        color: #f59e0b;
-        background: color-mix(in srgb, #f59e0b 14%, transparent);
-        border: 1px solid color-mix(in srgb, #f59e0b 46%, transparent);
+        color: #ffffff;
+        background: color-mix(in srgb, #f59e0b 20%, rgba(255, 255, 255, 0.04));
+        border: 1px solid color-mix(in srgb, #f59e0b 65%, transparent);
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
       }
+
       .pulse-dot {
         display: inline-block;
-        width: 5px;
-        height: 5px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         background: currentColor;
-        box-shadow: 0 0 6px currentColor;
-        margin-right: 4px;
+        box-shadow: 0 0 8px currentColor;
+        margin-right: 6px;
         flex-shrink: 0;
       }
-      .divider {
-        width: 1px;
-        height: 18px;
-        background: rgba(255, 255, 255, 0.08);
-        margin: 0 2px;
-        flex-shrink: 0;
+
+      .pulse-dot.live-dot {
+        background: #ff3b30;
+        box-shadow: 0 0 8px #ff3b30;
+      }
+
+      .pulse-dot.replay-dot {
+        background: #34c759;
+        box-shadow: 0 0 8px #34c759;
+      }
+
+      .pulse-dot.seeking-dot {
+        background: #ff9500;
+        box-shadow: 0 0 8px #ff9500;
+      }
+
+      .pulse-dot.paused-dot {
+        background: #f59e0b;
+        box-shadow: 0 0 8px #f59e0b;
+      }
+
+      @container (max-width: 330px) {
+        .pill {
+          font-size: 9.5px;
+          letter-spacing: 0.02em;
+          padding: 0 6px;
+        }
+        .pulse-dot {
+          margin-right: 4px;
+        }
       }
     `;
 
@@ -895,10 +948,9 @@ class F1ModeToggleCard extends HTMLElement {
       <style>${style}</style>
       <ha-card id="card">
         <div class="pill active live" id="live-pill">
-          <span class="pulse-dot" id="live-dot"></span>
+          <span class="pulse-dot live-dot" id="live-dot"></span>
           <span>${this._config.live_label}</span>
         </div>
-        <div class="divider"></div>
         <div class="pill" id="replay-pill">
           <span class="pulse-dot" id="replay-dot" style="display:none;"></span>
           <span id="replay-text">${this._config.replay_label}</span>
@@ -969,6 +1021,7 @@ class F1ModeToggleCard extends HTMLElement {
         liveDot.style.display = 'none';
       } else {
         livePill.className = 'pill active live';
+        liveDot.className = 'pulse-dot live-dot';
         liveDot.style.display = 'inline-block';
       }
     }
@@ -981,14 +1034,17 @@ class F1ModeToggleCard extends HTMLElement {
       } else {
         if (isSeeking) {
           replayPill.className = 'pill active replay seeking';
+          replayDot.className = 'pulse-dot seeking-dot';
           replayDot.style.display = 'inline-block';
           replayText.textContent = '[SEEKING]';
         } else if (isPaused) {
           replayPill.className = 'pill active replay paused';
-          replayDot.style.display = 'none';
-          replayText.textContent = '[REPLAY PAUSED]';
+          replayDot.className = 'pulse-dot paused-dot';
+          replayDot.style.display = 'inline-block';
+          replayText.textContent = 'REPLAY PAUSED';
         } else {
           replayPill.className = 'pill active replay';
+          replayDot.className = 'pulse-dot replay-dot';
           replayDot.style.display = 'inline-block';
           replayText.textContent = this._config.replay_label;
         }
@@ -1145,7 +1201,7 @@ if (!customElements.get('f1-mode-toggle-card')) {
     preview: true,
   });
   console.info(
-    '%c F1-MODE-TOGGLE-CARD %c v2.0.0 ',
+    '%c F1-MODE-TOGGLE-CARD %c v2.1.0 ',
     'color: white; background: #e10600; font-weight: 700;',
     'color: #040711; background: #86efac; font-weight: 700;'
   );
