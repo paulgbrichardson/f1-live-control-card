@@ -1,7 +1,7 @@
 # F1 Live Control Card (`f1-live-control-card`)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/default)
-[![version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/paul/f1-live-control-card)
+[![version](https://img.shields.io/badge/version-2.1.1-blue.svg)](https://github.com/paulgbrichardson/f1-live-control-card)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A high-performance custom Lovelace card suite for **Formula 1 Live Broadcast Synchronisation**, **TV Delay Calibration**, and **Session Mode Switching** in Home Assistant.
@@ -28,6 +28,15 @@ Includes two custom Lovelace elements:
 ---
 
 ## Installation
+
+### Installation via HACS (Custom Repository)
+1. In Home Assistant, open **HACS** → **Frontend**.
+2. Click the three dots in the top right corner and choose **Custom repositories**.
+3. Add the repository URL:
+   - **Repository**: `https://github.com/paulgbrichardson/f1-live-control-card`
+   - **Type**: `Dashboard` (or `Lovelace`)
+4. Click **Add**, find **F1 Live Control Card**, and click **Download**.
+5. Reload your browser window.
 
 ### Manual Lovelace Resource
 1. Copy `f1-live-control-card.js` (or minified `f1-live-control-card.min.js`) into your Home Assistant `/config/www/` directory.
