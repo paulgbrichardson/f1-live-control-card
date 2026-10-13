@@ -1,6 +1,6 @@
 /**
  * F1 Live Control Card (f1-live-control-card)
- * Version: 2.1.0
+ * Version: 2.1.2
  * 
  * Custom Lovelace Card for Formula 1 Live TV Session Synchronisation & Delay Calibration.
  * Exact Match to Nicxe/f1_sensor Replay Control Card (F1ReplayControlCard):
@@ -21,7 +21,10 @@ async function ensureF1Fonts() {
     return;
   }
   try {
-    const res = await fetch('/local/f1-sensor-live-data-card/f1-sensor-live-data-card.js');
+    let res = await fetch('/local/f1-sensor-live-data-card/f1-sensor-live-data-card.js');
+    if (!res.ok) {
+      res = await fetch('/hacsfiles/f1-sensor-live-data-card/f1-sensor-live-data-card.js');
+    }
     if (res.ok) {
       const txt = await res.text();
       const fontIdx = txt.indexOf('@font-face');
@@ -33,11 +36,27 @@ async function ensureF1Fonts() {
         style.textContent = fontCss;
         document.head.appendChild(style);
         window._f1FontsLoaded = true;
+        return;
       }
     }
   } catch (e) {
     // Gracefully fallback to system fonts
   }
+
+  const fontUrl = '/local/f1-sensor-live-data-card/fonts/barlow-condensed-latin-700-normal.woff2';
+  const hacsFontUrl = '/hacsfiles/f1-sensor-live-data-card/fonts/barlow-condensed-latin-700-normal.woff2';
+  const fallbackStyle = document.createElement('style');
+  fallbackStyle.setAttribute('data-f1-fonts', 'true');
+  fallbackStyle.textContent = `
+    @font-face {
+      font-family: 'F1 Barlow Condensed';
+      src: url('${fontUrl}') format('woff2'), url('${hacsFontUrl}') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+  `;
+  document.head.appendChild(fallbackStyle);
 
   if (!document.querySelector('link[href*="Barlow+Condensed"]')) {
     const link = document.createElement('link');
@@ -539,33 +558,37 @@ class F1LiveControlCard extends HTMLElement {
   }
 
   _adjustDelay(delta) {
-    if (!this._hass) return;
+    if (!this._hass || !this._config.delay_entity) return;
     const entity = this._hass.states[this._config.delay_entity];
     const current = entity ? parseFloat(entity.state) || 0 : 0;
     const target = Math.max(0, Math.round((current + delta) * 10) / 10);
-    this._hass.callService('number', 'set_value', {
+    const domain = this._config.delay_entity.split('.')[0] || 'number';
+    this._hass.callService(domain, 'set_value', {
       entity_id: this._config.delay_entity,
       value: target,
     });
   }
 
   _toggleCalibration() {
-    if (!this._hass) return;
-    this._hass.callService('switch', 'toggle', {
+    if (!this._hass || !this._config.calibration_entity) return;
+    const domain = this._config.calibration_entity.split('.')[0] || 'switch';
+    this._hass.callService(domain, 'toggle', {
       entity_id: this._config.calibration_entity,
     });
   }
 
   _matchDelay() {
-    if (!this._hass) return;
-    this._hass.callService('button', 'press', {
+    if (!this._hass || !this._config.match_button_entity) return;
+    const domain = this._config.match_button_entity.split('.')[0] || 'button';
+    this._hass.callService(domain, 'press', {
       entity_id: this._config.match_button_entity,
     });
   }
 
   _setReference(option) {
-    if (!this._hass) return;
-    this._hass.callService('select', 'select_option', {
+    if (!this._hass || !this._config.reference_entity) return;
+    const domain = this._config.reference_entity.split('.')[0] || 'select';
+    this._hass.callService(domain, 'select_option', {
       entity_id: this._config.reference_entity,
       option: option,
     });
@@ -619,7 +642,12 @@ class F1LiveControlCard extends HTMLElement {
     if (refSelect && refState && refState.attributes && refState.attributes.options) {
       const opts = refState.attributes.options;
       const current = refState.state;
-      refSelect.innerHTML = opts.map(o => `<option value="${o}" ${o === current ? 'selected' : ''}>${o}</option>`).join('');
+      const newHtml = opts.map(o => `<option value="${o}" ${o === current ? 'selected' : ''}>${o}</option>`).join('');
+      if (refSelect.innerHTML !== newHtml) {
+        refSelect.innerHTML = newHtml;
+      } else if (refSelect.value !== current) {
+        refSelect.value = current;
+      }
     }
   }
 
@@ -1181,7 +1209,7 @@ if (!customElements.get('f1-live-control-card')) {
     preview: true,
   });
   console.info(
-    '%c F1-LIVE-CONTROL-CARD %c v2.1.0 ',
+    '%c F1-LIVE-CONTROL-CARD %c v2.1.2 ',
     'color: white; background: #e10600; font-weight: 700;',
     'color: #040711; background: #38bdf8; font-weight: 700;'
   );
@@ -1201,7 +1229,7 @@ if (!customElements.get('f1-mode-toggle-card')) {
     preview: true,
   });
   console.info(
-    '%c F1-MODE-TOGGLE-CARD %c v2.1.0 ',
+    '%c F1-MODE-TOGGLE-CARD %c v2.1.2 ',
     'color: white; background: #e10600; font-weight: 700;',
     'color: #040711; background: #86efac; font-weight: 700;'
   );
