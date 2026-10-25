@@ -1,16 +1,15 @@
 /**
  * F1 Live Control Card (f1-live-control-card)
- * Version: 2.1.2
+ * Version: 2.3.0
  * 
  * Custom Lovelace Card for Formula 1 Live TV Session Synchronisation & Delay Calibration.
- * Exact Match to Nicxe/f1_sensor Replay Control Card (F1ReplayControlCard):
- * - Unified carbon chassis (.rc-card) with subtle red top-edge gradient
- * - Typography matching Replay Card (.rc-header, .rc-title 14px 600 weight, .rc-subtitle 11px)
- * - Standardized replay status pill badge (.rc-status-pill) with official color tokens, live pulse, and <ha-icon>
- * - Authentic Replay Card action buttons (.rc-button): 36px height, 8px radius, 10px bold uppercase, <ha-icon> 17px
- * - Dedicated Delay Hero Panel (.rc-status-details) with discrete nudge buttons (.rc-button.nudge-btn)
- * - Authentic Reference dropdown (.rc-select-field, .rc-field-label, .rc-select-wrap)
- * Includes companion F1ModeToggleCard (custom:f1-mode-toggle-card) for seamless Live / Replay session switching.
+ * - Unified carbon chassis (.rc-card) matching Weekend Hub aesthetic
+ * - Guided Lap Sync Engine: real-time telemetry lap tracking, armed state, and visual TV match prompts
+ * - Real-time Telemetry Stopwatch display during active measurement
+ * - Broadcaster Quick Presets (Sky Satellite, F1 TV Pro, Sky Stream/Now TV, Zero)
+ * - Telemetry Lap Counter Chip (e.g. LAP 3 / 56)
+ * - Responsive container queries and dark-mode native select dropdowns
+ * Companion F1ModeToggleCard (custom:f1-mode-toggle-card) included for seamless Live / Replay switching.
  */
 
 // Automated font loader matching Nicxe/f1_sensor
@@ -79,25 +78,31 @@ class F1LiveControlCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      kicker: '',
+      kicker: 'SESSION TELEMETRY SYNC',
       title: 'LIVE TV SYNCHRONISATION',
-      subtitle: 'DELAY CALIBRATION & OFFSET',
+      subtitle: 'DELAY CALIBRATION & LAP SYNC',
       delay_entity: 'number.f1_live_delay',
       calibration_entity: 'switch.f1_delay_calibration',
       match_button_entity: 'button.f1_match_live_delay',
       reference_entity: 'select.f1_live_delay_reference',
+      lap_count_entity: 'sensor.f1_race_lap_count',
+      show_presets: true,
+      show_nudge: true,
     };
   }
 
   setConfig(config) {
     this._config = Object.assign({
-      kicker: '',
+      kicker: 'SESSION TELEMETRY SYNC',
       title: 'LIVE TV SYNCHRONISATION',
-      subtitle: 'DELAY CALIBRATION & OFFSET',
+      subtitle: 'DELAY CALIBRATION & LAP SYNC',
       delay_entity: 'number.f1_live_delay',
       calibration_entity: 'switch.f1_delay_calibration',
       match_button_entity: 'button.f1_match_live_delay',
       reference_entity: 'select.f1_live_delay_reference',
+      lap_count_entity: 'sensor.f1_race_lap_count',
+      show_presets: true,
+      show_nudge: true,
     }, config || {});
 
     ensureF1Fonts();
@@ -111,32 +116,19 @@ class F1LiveControlCard extends HTMLElement {
 
   _renderBase() {
     const style = `
-      @keyframes replayPulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.64; }
-      }
-
       :host {
         display: block;
         width: 100%;
         box-sizing: border-box;
-
-        /* Replay Card Tokens matching F1ReplayControlCard */
-        --rc-bg: var(--f1-card-bg, #0b0b0d);
-        --rc-bg-soft: var(--f1-card-bg-soft, #131315);
-        --rc-bg-end: var(--f1-card-bg-end, #0a0a0a);
-        --rc-border: var(--f1-card-border, rgba(255, 255, 255, 0.08));
-        --rc-divider: var(--f1-card-divider, rgba(255, 255, 255, 0.08));
-        --rc-text: var(--f1-card-text, #f5f5f5);
-        --rc-muted: var(--f1-card-muted, rgba(255, 255, 255, 0.65));
-        --rc-soft: var(--f1-card-soft, rgba(255, 255, 255, 0.42));
-        --rc-chip: var(--f1-card-chip, rgba(255, 255, 255, 0.06));
-        --rc-panel: var(--f1-card-panel, rgba(255, 255, 255, 0.04));
-        --rc-shadow: var(--f1-card-compact-shadow, 0 16px 40px rgba(0, 0, 0, 0.35));
-
-        --f1-card-display-font-family: 'Formula1 Wide', 'Formula1 Display', Arial, sans-serif;
-        --f1-card-body-font-family: 'Formula1 Display', 'Titillium Web', Arial, sans-serif;
-        --f1-marker-red: #ff3b30;
+        --rc-accent: #ff3b30;
+        --rc-surface: #0b0b0d;
+        --rc-panel: #131315;
+        --rc-card-bg: #0a0a0a;
+        --rc-border: rgba(255, 255, 255, 0.08);
+        --rc-divider: rgba(255, 255, 255, 0.08);
+        --rc-text: #f5f5f5;
+        --rc-muted: rgba(255, 255, 255, 0.65);
+        --rc-font: var(--f1-card-display-font-family, 'Formula1 Display', 'F1 Barlow Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
       }
 
       * {
@@ -144,132 +136,157 @@ class F1LiveControlCard extends HTMLElement {
       }
 
       ha-card {
-        padding: 0;
-        background: transparent;
-        box-shadow: none;
-        border: none;
-      }
-
-      /* Replay Card Container Architecture (.rc-card) */
-      .rc-card {
-        font-family: var(--f1-card-body-font-family, 'Formula1 Display', 'Titillium Web', Arial, sans-serif);
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 12px;
         border-radius: var(--ha-card-border-radius, 12px);
-        background:
-          linear-gradient(90deg, rgba(225, 6, 0, 0.18), transparent 34%) top left / 100% 2px no-repeat,
-          radial-gradient(circle at 14% 10%, var(--rc-chip), transparent 44%),
-          linear-gradient(160deg, var(--rc-bg) 0%, var(--rc-bg-soft) 58%, var(--rc-bg-end) 100%);
+        overflow: hidden;
         border: 1px solid var(--rc-border);
-        box-shadow: var(--rc-shadow);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
         color: var(--rc-text);
+        font-family: var(--rc-font);
+        background:
+          linear-gradient(110deg, transparent 0 47%, rgba(255, 255, 255, 0.025) 47% 48%, transparent 48% 100%),
+          radial-gradient(circle at 93% -8%, rgba(255, 59, 48, 0.22), transparent 38%),
+          linear-gradient(155deg, var(--rc-surface) 0%, var(--rc-panel) 68%, var(--rc-card-bg) 100%);
+        position: relative;
         container-type: inline-size;
       }
 
-      /* Replay Card Header (.rc-header) */
+      ha-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: var(--rc-accent);
+        z-index: 5;
+      }
+
+      .rc-card {
+        padding: clamp(14px, 2.5vw, 20px) clamp(16px, 3vw, 24px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* Header */
       .rc-header {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 10px;
-        align-items: center;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--rc-divider);
       }
 
       .rc-title-group {
-        min-width: 0;
         display: flex;
         flex-direction: column;
         gap: 2px;
+        min-width: 0;
       }
 
       .rc-kicker {
-        color: var(--f1-marker-red);
-        font-family: var(--f1-card-body-font-family, 'Formula1 Display', sans-serif);
-        font-size: 8.5px;
-        font-weight: 800;
-        letter-spacing: 0.14em;
+        color: var(--rc-accent);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        line-height: 1.1;
-      }
-
-      .rc-kicker:empty {
-        display: none;
       }
 
       .rc-title {
-        font-family: var(--f1-card-display-font-family, 'Formula1 Wide', 'Formula1 Display', Arial, sans-serif);
-        font-weight: 600;
-        font-size: 14px;
-        letter-spacing: 0.018em;
-        line-height: 1.14;
-        overflow-wrap: anywhere;
-        text-transform: uppercase;
         color: var(--rc-text);
+        font-size: clamp(15px, 2.2vw, 18px);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+        line-height: 1.15;
       }
 
       .rc-subtitle {
         color: var(--rc-muted);
-        font-family: var(--f1-card-body-font-family, 'Formula1 Display', 'Titillium Web', Arial, sans-serif);
         font-size: 11px;
-        line-height: 1.3;
-        overflow-wrap: anywhere;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
       }
 
-      .rc-subtitle:empty {
-        display: none;
+      .rc-header-badges {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
-      /* Standardized Replay Status Pill (.rc-status-pill) */
+      .rc-lap-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Status Pill */
       .rc-status-pill {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 6px;
-        min-height: 24px;
-        padding: 3px 9px;
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--rc-status-color, var(--rc-soft)) 46%, transparent);
-        background: color-mix(in srgb, var(--rc-status-color, var(--rc-soft)) 14%, transparent);
-        color: var(--rc-status-color, var(--rc-text));
-        font-weight: 700;
+        height: 26px;
+        padding: 0 10px;
+        border-radius: 9999px;
         font-size: 10px;
-        letter-spacing: 0.05em;
-        white-space: nowrap;
+        font-weight: 800;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
+        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--rc-muted);
+        transition: all 0.25s ease;
       }
 
       .rc-status-pill ha-icon {
-        --mdc-icon-size: 15px;
-        flex-shrink: 0;
+        --mdc-icon-size: 14px;
       }
 
-      .rc-status-pill.playing,
-      .rc-status-pill.live {
-        --rc-status-color: #34c759;
-        animation: replayPulse 1.6s ease-in-out infinite;
+      .rc-status-pill.playing {
+        color: #86efac;
+        background: rgba(34, 197, 94, 0.14);
+        border-color: rgba(34, 197, 94, 0.35);
       }
 
       .rc-status-pill.calibrating {
-        --rc-status-color: #f59e0b;
-        animation: replayPulse 1.2s ease-in-out infinite;
+        color: #fde68a;
+        background: rgba(245, 158, 11, 0.16);
+        border-color: rgba(245, 158, 11, 0.45);
+        animation: amberPulse 2s infinite ease-in-out;
       }
 
-      /* Status Details / Delay Hero Section (.rc-status-details) */
+      .rc-status-pill.measuring {
+        color: #86efac;
+        background: rgba(52, 199, 89, 0.22);
+        border-color: rgba(52, 199, 89, 0.6);
+        box-shadow: 0 0 10px rgba(52, 199, 89, 0.3);
+      }
+
+      /* Current Delay Hero Panel */
       .rc-status-details {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 10px;
-        padding: 8px 12px;
-        border: 1px solid var(--rc-divider);
-        border-radius: 8px;
-        background: var(--rc-panel);
+        grid-template-columns: auto 1fr;
         align-items: center;
+        gap: 14px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--rc-divider);
       }
 
       .rc-detail {
-        min-width: 0;
         display: flex;
         flex-direction: column;
         gap: 2px;
@@ -277,7 +294,7 @@ class F1LiveControlCard extends HTMLElement {
 
       .rc-detail-label {
         color: var(--rc-muted);
-        font-size: 9px;
+        font-size: 9.5px;
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -286,73 +303,54 @@ class F1LiveControlCard extends HTMLElement {
       .rc-delay-readout {
         display: flex;
         align-items: baseline;
-        gap: 2px;
+        gap: 3px;
       }
 
       .rc-delay-num {
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: 22px;
-        font-weight: 800;
-        color: var(--rc-text);
+        font-size: clamp(22px, 3.5vw, 28px);
+        font-weight: 900;
+        color: #ffffff;
+        font-variant-numeric: tabular-nums;
         line-height: 1;
         letter-spacing: -0.02em;
-        font-variant-numeric: tabular-nums;
       }
 
       .rc-delay-unit {
-        font-family: var(--f1-card-display-font-family, 'Formula1 Display', sans-serif);
-        font-size: 12px;
-        font-weight: 800;
-        color: #e10600;
-        margin-left: 2px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--rc-muted);
       }
 
       .rc-nudge-group {
         display: flex;
-        gap: 5px;
         align-items: center;
-      }
-
-      /* Replay Action Buttons (.rc-button) */
-      .rc-controls-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 7px;
+        gap: 4px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
       }
 
       .rc-button {
-        min-width: 0;
-        min-height: 36px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
-        border: 1px solid var(--rc-divider);
+        height: 36px;
+        padding: 0 14px;
         border-radius: 8px;
-        background: var(--rc-panel);
-        color: var(--rc-text);
-        font: inherit;
-        font-size: 10px;
-        font-weight: 700;
-        line-height: 1;
-        cursor: pointer;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-        box-sizing: border-box;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-
-      .rc-button ha-icon {
-        --mdc-icon-size: 17px;
-        flex: 0 0 auto;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
+        white-space: nowrap;
       }
 
       .rc-button:hover:not(:disabled) {
         transform: translateY(-1px);
-        border-color: color-mix(in srgb, #e10600 45%, var(--rc-divider));
-        background: color-mix(in srgb, #e10600 10%, var(--rc-panel));
       }
 
       .rc-button:active:not(:disabled) {
@@ -360,78 +358,90 @@ class F1LiveControlCard extends HTMLElement {
       }
 
       .rc-button:disabled {
-        opacity: 0.42;
+        opacity: 0.38;
         cursor: not-allowed;
       }
 
-      .rc-button.primary {
-        background: linear-gradient(135deg, #e10600, #9f0500);
-        border-color: rgba(255, 255, 255, 0.14);
-        color: #ffffff;
-        box-shadow: 0 2px 8px rgba(225, 6, 0, 0.28);
-      }
-
-      .rc-button.primary:hover:not(:disabled) {
-        background: linear-gradient(135deg, #ff1812, #b80700);
-        border-color: rgba(255, 255, 255, 0.25);
-        box-shadow: 0 4px 12px rgba(225, 6, 0, 0.4);
-      }
-
-      .rc-button.load {
-        background: color-mix(in srgb, #38bdf8 15%, var(--rc-panel));
-        border-color: color-mix(in srgb, #38bdf8 34%, var(--rc-divider));
-        color: color-mix(in srgb, #38bdf8 84%, var(--rc-text));
-      }
-
-      .rc-button.load:hover:not(:disabled) {
-        background: color-mix(in srgb, #38bdf8 25%, var(--rc-panel));
-        border-color: color-mix(in srgb, #38bdf8 50%, var(--rc-divider));
-      }
-
-      .rc-button.calibrating {
-        background: color-mix(in srgb, #f59e0b 16%, var(--rc-panel));
-        border-color: color-mix(in srgb, #f59e0b 38%, var(--rc-divider));
-        color: #fde68a;
-      }
-
-      .rc-button.calibrating:hover:not(:disabled) {
-        background: color-mix(in srgb, #f59e0b 26%, var(--rc-panel));
-        border-color: color-mix(in srgb, #f59e0b 55%, var(--rc-divider));
-      }
-
       .rc-button.nudge-btn {
-        min-height: 28px;
+        height: 28px;
         padding: 0 8px;
         border-radius: 6px;
         font-size: 10px;
         font-weight: 700;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #f5f5f5;
       }
 
-      .rc-button-label {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+      .rc-button.nudge-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.22);
       }
 
-      /* Replay Select Field (.rc-select-field) */
-      .rc-select-field {
+      /* Quick Presets Row */
+      .rc-presets-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .rc-presets-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        color: var(--rc-muted);
+        text-transform: uppercase;
+        margin-right: 2px;
+      }
+
+      .rc-preset-chip {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        font-family: inherit;
+        color: rgba(255, 255, 255, 0.75);
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .rc-preset-chip:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
+        color: #ffffff;
+      }
+
+      /* Mission Control Lap Sync Deck */
+      .rc-sync-deck {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--rc-divider);
+        border-radius: 10px;
+        padding: 12px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        min-width: 0;
+        gap: 10px;
+      }
+
+      .rc-sync-deck-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
 
       .rc-field-label {
         color: var(--rc-muted);
         font-size: 9px;
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
       .rc-select-wrap {
         position: relative;
-        min-width: 0;
+        width: 100%;
       }
 
       .rc-select-wrap::after {
@@ -453,32 +463,215 @@ class F1LiveControlCard extends HTMLElement {
         appearance: none;
         border: 1px solid var(--rc-divider);
         border-radius: 8px;
-        background: color-mix(in srgb, var(--rc-panel) 76%, transparent);
-        color: var(--rc-text);
+        background: #14151b;
+        color: #f5f5f5;
+        color-scheme: dark !important;
         font: inherit;
         font-size: 12px;
-        line-height: 1.2;
+        font-weight: 600;
         padding: 0 32px 0 10px;
         outline: none;
-        min-width: 0;
-        text-overflow: ellipsis;
         cursor: pointer;
       }
 
+      select option {
+        background: #14151b;
+        color: #f5f5f5;
+        color-scheme: dark !important;
+      }
+
       select:focus {
-        border-color: color-mix(in srgb, #e10600 70%, var(--rc-divider));
-        box-shadow: 0 0 0 2px rgba(225, 6, 0, 0.16);
+        border-color: var(--rc-accent);
+      }
+
+      /* Interactive Mission Guidance Banner */
+      .rc-guide-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        line-height: 1.4;
+        transition: all 0.25s ease;
+      }
+
+      .rc-guide-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+        line-height: 1.2;
+      }
+
+      .rc-guide-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .rc-guide-title {
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
+
+      .rc-guide-banner.idle {
+        background: rgba(56, 189, 248, 0.07);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        color: #bae6fd;
+      }
+
+      .rc-guide-banner.waiting {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.45);
+        color: #fef3c7;
+        animation: amberPulse 2s infinite ease-in-out;
+      }
+
+      .rc-guide-banner.measuring {
+        background: rgba(52, 199, 89, 0.14);
+        border: 1px solid rgba(52, 199, 89, 0.55);
+        color: #dcfce7;
+        box-shadow: 0 0 14px rgba(52, 199, 89, 0.2);
+      }
+
+      /* Running Telemetry Stopwatch Panel */
+      .rc-stopwatch-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(52, 199, 89, 0.12);
+        border: 1px solid rgba(52, 199, 89, 0.35);
+      }
+
+      .rc-stopwatch-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pulse-ring {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #34c759;
+        box-shadow: 0 0 10px #34c759;
+        animation: ringPulse 1.2s infinite ease-in-out;
+      }
+
+      .rc-stopwatch-label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #86efac;
+      }
+
+      .rc-stopwatch-digits {
+        display: flex;
+        align-items: baseline;
+        gap: 3px;
+        font-variant-numeric: tabular-nums;
+        font-size: 26px;
+        font-weight: 900;
+        color: #86efac;
+        text-shadow: 0 0 12px rgba(52, 199, 89, 0.45);
+        line-height: 1;
+      }
+
+      .rc-stopwatch-unit {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(134, 239, 172, 0.7);
+      }
+
+      /* Controls Grid */
+      .rc-controls-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .rc-button.primary {
+        background: linear-gradient(135deg, #e10600, #a50500);
+        border-color: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
+        box-shadow: 0 2px 10px rgba(225, 6, 0, 0.3);
+      }
+
+      .rc-button.primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #ff1a14, #c20600);
+        box-shadow: 0 4px 14px rgba(225, 6, 0, 0.5);
+      }
+
+      .rc-button.load {
+        background: rgba(56, 189, 248, 0.12);
+        border-color: rgba(56, 189, 248, 0.35);
+        color: #38bdf8;
+      }
+
+      .rc-button.load:hover:not(:disabled) {
+        background: rgba(56, 189, 248, 0.22);
+        border-color: rgba(56, 189, 248, 0.55);
+      }
+
+      .rc-button.cancel-btn {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #fca5a5;
+      }
+
+      .rc-button.cancel-btn:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.25);
+        border-color: rgba(239, 68, 68, 0.55);
+      }
+
+      .rc-button.pulse-anim {
+        animation: buttonPulse 1.4s infinite ease-in-out;
+      }
+
+      /* Last Result */
+      .rc-last-result {
+        font-size: 10px;
+        font-weight: 700;
+        color: #86efac;
+        padding: 4px 8px;
+        background: rgba(34, 197, 94, 0.08);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 6px;
+        text-align: center;
+      }
+
+      /* Animations */
+      @keyframes amberPulse {
+        0%, 100% { border-color: rgba(245, 158, 11, 0.45); }
+        50% { border-color: rgba(245, 158, 11, 0.85); box-shadow: 0 0 10px rgba(245, 158, 11, 0.25); }
+      }
+
+      @keyframes ringPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.3); opacity: 0.6; }
+      }
+
+      @keyframes buttonPulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 2px 10px rgba(225, 6, 0, 0.35); }
+        50% { transform: scale(1.02); box-shadow: 0 4px 18px rgba(225, 6, 0, 0.7); }
       }
 
       /* Responsive Layout */
-      @container (max-width: 420px) {
+      @container (max-width: 440px) {
         .rc-status-details {
           grid-template-columns: 1fr;
-          gap: 8px;
+          gap: 10px;
+        }
+        .rc-nudge-group {
+          justify-content: flex-start;
         }
         .rc-controls-grid {
           grid-template-columns: 1fr;
-          gap: 6px;
         }
       }
     `;
@@ -489,13 +682,19 @@ class F1LiveControlCard extends HTMLElement {
         <div class="rc-card">
           <div class="rc-header">
             <div class="rc-title-group">
-              <div class="rc-kicker" id="kicker">${this._config.kicker || ''}</div>
+              <div class="rc-kicker" id="kicker">${this._config.kicker || 'SESSION TELEMETRY SYNC'}</div>
               <div class="rc-title" id="title">${this._config.title || 'LIVE TV SYNCHRONISATION'}</div>
-              <div class="rc-subtitle" id="subtitle">${this._config.subtitle || 'DELAY CALIBRATION & OFFSET'}</div>
+              <div class="rc-subtitle" id="subtitle">${this._config.subtitle || 'DELAY CALIBRATION & LAP SYNC'}</div>
             </div>
-            <div class="rc-status-pill playing" id="status-pill">
-              <ha-icon icon="mdi:broadcast" id="status-icon"></ha-icon>
-              <span id="status-text">LIVE SYNC</span>
+            <div class="rc-header-badges">
+              <div class="rc-lap-badge" id="lap-badge" style="display:none;">
+                <span class="rc-lap-icon">🏁</span>
+                <span id="lap-badge-text">LAP --</span>
+              </div>
+              <div class="rc-status-pill playing" id="status-pill">
+                <ha-icon icon="mdi:broadcast" id="status-icon"></ha-icon>
+                <span id="status-text">LIVE SYNC</span>
+              </div>
             </div>
           </div>
 
@@ -506,41 +705,89 @@ class F1LiveControlCard extends HTMLElement {
                 <span class="rc-delay-num" id="delay-num">--</span><span class="rc-delay-unit">s</span>
               </div>
             </div>
-            <div class="rc-nudge-group">
+            <div class="rc-nudge-group" id="nudge-group">
               <button class="rc-button nudge-btn" data-delta="-5">-5s</button>
               <button class="rc-button nudge-btn" data-delta="-1">-1s</button>
+              <button class="rc-button nudge-btn" data-delta="-0.1">-0.1s</button>
+              <button class="rc-button nudge-btn" data-delta="0.1">+0.1s</button>
               <button class="rc-button nudge-btn" data-delta="1">+1s</button>
               <button class="rc-button nudge-btn" data-delta="5">+5s</button>
             </div>
           </div>
 
-          <div class="rc-controls-grid">
-            <button class="rc-button load" id="btn-calibrate">
-              <ha-icon icon="mdi:timer-outline" id="calibrate-icon"></ha-icon>
-              <span class="rc-button-label" id="calibrate-text">START CALIBRATION</span>
-            </button>
-            <button class="rc-button primary" id="btn-match">
-              <ha-icon icon="mdi:lock"></ha-icon>
-              <span class="rc-button-label">MATCH DELAY (TV NOW)</span>
-            </button>
+          <div class="rc-presets-row" id="presets-row" style="${this._config.show_presets === false ? 'display:none;' : ''}">
+            <span class="rc-presets-label">Quick Jump:</span>
+            <button class="rc-preset-chip" data-delay="18">Sky Sat (18s)</button>
+            <button class="rc-preset-chip" data-delay="22">F1 TV (22s)</button>
+            <button class="rc-preset-chip" data-delay="38">Now/Stream (38s)</button>
+            <button class="rc-preset-chip" data-delay="0">Reset 0s</button>
           </div>
 
-          <label class="rc-select-field">
-            <span class="rc-field-label">Reference Mode</span>
-            <span class="rc-select-wrap">
-              <select id="reference-select">
-                <option value="Session live">Session live</option>
-              </select>
-            </span>
-          </label>
+          <div class="rc-sync-deck">
+            <div class="rc-sync-deck-header">
+              <span class="rc-field-label">CALIBRATION & LAP SYNC MISSION CONTROL</span>
+            </div>
+
+            <div class="rc-reference-selector">
+              <label class="rc-select-field">
+                <div class="rc-select-wrap">
+                  <select id="reference-select">
+                    <option value="Lap sync (race/sprint)">Lap sync (race/sprint) — Recommended</option>
+                    <option value="Session live">Session live (Lights Out)</option>
+                  </select>
+                </div>
+              </label>
+            </div>
+
+            <div class="rc-guide-banner idle" id="guide-banner">
+              <div class="rc-guide-icon" id="guide-icon">🏁</div>
+              <div class="rc-guide-content">
+                <div class="rc-guide-title" id="guide-title">READY TO CALIBRATE</div>
+                <div class="rc-guide-desc" id="guide-desc">
+                  Select <strong>Lap sync</strong> then click <strong>START CALIBRATION</strong> below. The telemetry engine will arm and wait for the leader to complete the current lap.
+                </div>
+              </div>
+            </div>
+
+            <div class="rc-stopwatch-panel" id="stopwatch-panel" style="display:none;">
+              <div class="rc-stopwatch-indicator">
+                <span class="pulse-ring"></span>
+                <span class="rc-stopwatch-label">TELEMETRY STOPWATCH</span>
+              </div>
+              <div class="rc-stopwatch-digits">
+                <span id="stopwatch-time">0.0</span><span class="rc-stopwatch-unit">s</span>
+              </div>
+            </div>
+
+            <div class="rc-controls-grid">
+              <button class="rc-button load" id="btn-calibrate">
+                <ha-icon icon="mdi:timer-outline" id="calibrate-icon"></ha-icon>
+                <span class="rc-button-label" id="calibrate-text">START CALIBRATION</span>
+              </button>
+              <button class="rc-button primary" id="btn-match" disabled>
+                <ha-icon icon="mdi:lock"></ha-icon>
+                <span class="rc-button-label" id="match-text">MATCH DELAY (TV NOW)</span>
+              </button>
+            </div>
+
+            <div class="rc-last-result" id="last-result" style="display:none;"></div>
+          </div>
         </div>
       </ha-card>
     `;
 
+    // Event Listeners
     this.shadowRoot.querySelectorAll('.nudge-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const delta = parseFloat(btn.dataset.delta);
         this._adjustDelay(delta);
+      });
+    });
+
+    this.shadowRoot.querySelectorAll('.rc-preset-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const delay = parseFloat(btn.dataset.delay);
+        this._setDelay(delay);
       });
     });
 
@@ -569,10 +816,22 @@ class F1LiveControlCard extends HTMLElement {
     });
   }
 
+  _setDelay(val) {
+    if (!this._hass || !this._config.delay_entity) return;
+    const domain = this._config.delay_entity.split('.')[0] || 'number';
+    this._hass.callService(domain, 'set_value', {
+      entity_id: this._config.delay_entity,
+      value: Math.max(0, val),
+    });
+  }
+
   _toggleCalibration() {
     if (!this._hass || !this._config.calibration_entity) return;
+    const calState = this._hass.states[this._config.calibration_entity];
+    const isArmedOrRunning = calState && calState.state === 'on';
     const domain = this._config.calibration_entity.split('.')[0] || 'switch';
-    this._hass.callService(domain, 'toggle', {
+    const service = isArmedOrRunning ? 'turn_off' : 'turn_on';
+    this._hass.callService(domain, service, {
       entity_id: this._config.calibration_entity,
     });
   }
@@ -597,62 +856,188 @@ class F1LiveControlCard extends HTMLElement {
   _updateContent() {
     if (!this._hass || !this.shadowRoot) return;
 
+    // 1. Current Delay
     const delayState = this._hass.states[this._config.delay_entity];
     const delayEl = this.shadowRoot.getElementById('delay-num');
     if (delayEl && delayState) {
       delayEl.textContent = delayState.state;
     }
 
+    // 2. Lap Count Badge
+    const lapEntityId = this._config.lap_count_entity || 'sensor.f1_race_lap_count';
+    const lapState = this._hass.states[lapEntityId];
+    const lapBadge = this.shadowRoot.getElementById('lap-badge');
+    const lapBadgeText = this.shadowRoot.getElementById('lap-badge-text');
+    let currentLap = null;
+    let totalLaps = null;
+    if (lapBadge && lapBadgeText) {
+      if (lapState && lapState.state && lapState.state !== 'unavailable' && lapState.state !== 'unknown') {
+        currentLap = lapState.state;
+        totalLaps = lapState.attributes ? lapState.attributes.total_laps : null;
+        lapBadgeText.textContent = totalLaps ? `TELEMETRY LAP ${currentLap}/${totalLaps}` : `TELEMETRY LAP ${currentLap}`;
+        lapBadge.style.display = 'inline-flex';
+      } else {
+        lapBadge.style.display = 'none';
+      }
+    }
+
+    // 3. Calibration State & Attributes
     const calState = this._hass.states[this._config.calibration_entity];
-    const calBtn = this.shadowRoot.getElementById('btn-calibrate');
-    const calIcon = this.shadowRoot.getElementById('calibrate-icon');
-    const calText = this.shadowRoot.getElementById('calibrate-text');
-    const statusPill = this.shadowRoot.getElementById('status-pill');
-    const statusIcon = this.shadowRoot.getElementById('status-icon');
-    const statusText = this.shadowRoot.getElementById('status-text');
+    const calAttrs = calState ? calState.attributes || {} : {};
+    const mode = calAttrs.mode || (calState && calState.state === 'on' ? 'running' : 'idle');
+    const isWaiting = mode === 'waiting';
+    const isRunning = mode === 'running';
+    const isIdle = !isWaiting && !isRunning;
+    const recordedLap = calAttrs.recorded_lap;
+    const elapsed = calAttrs.elapsed !== undefined && calAttrs.elapsed !== null ? calAttrs.elapsed : null;
+    const lastResult = calAttrs.last_result;
+    const activeRefKind = calAttrs.reference || '';
 
-    const isActive = calState && calState.state === 'on';
-
-    if (calBtn) {
-      if (isActive) {
-        calBtn.className = 'rc-button calibrating';
-        if (calIcon) calIcon.setAttribute('icon', 'mdi:timer-sand');
-        if (calText) calText.textContent = 'STOP CALIBRATION';
-      } else {
-        calBtn.className = 'rc-button load';
-        if (calIcon) calIcon.setAttribute('icon', 'mdi:timer-outline');
-        if (calText) calText.textContent = 'START CALIBRATION';
-      }
-    }
-
-    if (statusPill && statusText) {
-      if (isActive) {
-        statusPill.className = 'rc-status-pill calibrating';
-        if (statusIcon) statusIcon.setAttribute('icon', 'mdi:timer-outline');
-        statusText.textContent = 'CALIBRATING';
-      } else {
-        statusPill.className = 'rc-status-pill playing';
-        if (statusIcon) statusIcon.setAttribute('icon', 'mdi:broadcast');
-        statusText.textContent = 'LIVE SYNC';
-      }
-    }
-
+    // 4. Reference Selector
     const refState = this._hass.states[this._config.reference_entity];
     const refSelect = this.shadowRoot.getElementById('reference-select');
+    let selectedOption = 'Lap sync (race/sprint)';
     if (refSelect && refState && refState.attributes && refState.attributes.options) {
       const opts = refState.attributes.options;
       const current = refState.state;
+      selectedOption = current;
       const newHtml = opts.map(o => `<option value="${o}" ${o === current ? 'selected' : ''}>${o}</option>`).join('');
       if (refSelect.innerHTML !== newHtml) {
         refSelect.innerHTML = newHtml;
       } else if (refSelect.value !== current) {
         refSelect.value = current;
       }
+      refSelect.disabled = !isIdle;
+    }
+
+    // 5. Status Pill & Guided Mission Control UI
+    const statusPill = this.shadowRoot.getElementById('status-pill');
+    const statusIcon = this.shadowRoot.getElementById('status-icon');
+    const statusText = this.shadowRoot.getElementById('status-text');
+
+    const guideBanner = this.shadowRoot.getElementById('guide-banner');
+    const guideIcon = this.shadowRoot.getElementById('guide-icon');
+    const guideTitle = this.shadowRoot.getElementById('guide-title');
+    const guideDesc = this.shadowRoot.getElementById('guide-desc');
+    const calBtn = this.shadowRoot.getElementById('btn-calibrate');
+    const calIcon = this.shadowRoot.getElementById('calibrate-icon');
+    const calText = this.shadowRoot.getElementById('calibrate-text');
+    const matchBtn = this.shadowRoot.getElementById('btn-match');
+    const matchText = this.shadowRoot.getElementById('match-text');
+    const stopwatchPanel = this.shadowRoot.getElementById('stopwatch-panel');
+    const stopwatchTime = this.shadowRoot.getElementById('stopwatch-time');
+    const lastResultEl = this.shadowRoot.getElementById('last-result');
+
+    const isLapSync = (activeRefKind === 'lap_sync') || selectedOption.toLowerCase().includes('lap');
+
+    if (isWaiting) {
+      if (statusPill) statusPill.className = 'rc-status-pill calibrating';
+      if (statusIcon) statusIcon.setAttribute('icon', 'mdi:timer-sand');
+      if (statusText) statusText.textContent = isLapSync ? 'WAITING FOR LAP TICK' : 'WAITING FOR SESSION';
+
+      if (guideBanner) guideBanner.className = 'rc-guide-banner waiting';
+      if (guideIcon) guideIcon.textContent = '⏳';
+      if (guideTitle) guideTitle.textContent = isLapSync ? 'ARMED: WAITING FOR TELEMETRY LAP TICK' : 'ARMED: WAITING FOR SESSION START';
+      if (guideDesc) {
+        guideDesc.innerHTML = isLapSync
+          ? `Telemetry is monitoring the leader (Currently on Lap <strong>${currentLap || '--'}</strong>). Keep watching your TV — as soon as the lap completes in telemetry, the timer will start automatically!`
+          : `Waiting for session status to report <strong>Started</strong> in live telemetry. Keep watching TV!`;
+      }
+
+      if (calBtn) {
+        calBtn.className = 'rc-button cancel-btn';
+        if (calIcon) calIcon.setAttribute('icon', 'mdi:close-circle-outline');
+        if (calText) calText.textContent = 'CANCEL CALIBRATION';
+      }
+
+      if (matchBtn) {
+        matchBtn.disabled = true;
+        matchBtn.classList.remove('pulse-anim');
+        if (matchText) matchText.textContent = 'WAITING FOR LAP...';
+      }
+
+      if (stopwatchPanel) stopwatchPanel.style.display = 'none';
+
+    } else if (isRunning) {
+      if (statusPill) statusPill.className = 'rc-status-pill measuring';
+      if (statusIcon) statusIcon.setAttribute('icon', 'mdi:timer-play');
+      if (statusText) statusText.textContent = 'MEASURING TV DELAY';
+
+      if (guideBanner) guideBanner.className = 'rc-guide-banner measuring';
+      if (guideIcon) guideIcon.textContent = '🎯';
+
+      const targetLap = (recordedLap !== null && recordedLap !== undefined) ? (parseInt(recordedLap, 10) + 1) : null;
+
+      if (guideTitle) {
+        guideTitle.textContent = targetLap
+          ? `🏁 LAP ${recordedLap} COMPLETED IN TELEMETRY!`
+          : `⏱ MEASURING TV BROADCAST DELAY`;
+      }
+
+      if (guideDesc) {
+        guideDesc.innerHTML = targetLap
+          ? `👉 <strong>WATCH YOUR TV SCREEN NOW!</strong> The exact instant your TV broadcast lap counter changes to <strong>LAP ${targetLap}</strong>, press <strong>MATCH DELAY</strong> below!`
+          : `👉 <strong>WATCH TV NOW:</strong> Press <strong>MATCH DELAY</strong> the moment your broadcast catches up with the telemetry event (lights out)!`;
+      }
+
+      if (calBtn) {
+        calBtn.className = 'rc-button cancel-btn';
+        if (calIcon) calIcon.setAttribute('icon', 'mdi:close-circle-outline');
+        if (calText) calText.textContent = 'CANCEL';
+      }
+
+      if (matchBtn) {
+        matchBtn.disabled = false;
+        matchBtn.classList.add('pulse-anim');
+        if (matchText) matchText.textContent = targetLap ? `MATCH DELAY (TV AT LAP ${targetLap})` : `MATCH DELAY (TV NOW)`;
+      }
+
+      if (stopwatchPanel) {
+        stopwatchPanel.style.display = 'flex';
+        if (stopwatchTime) stopwatchTime.textContent = elapsed !== null ? parseFloat(elapsed).toFixed(1) : '0.0';
+      }
+
+    } else {
+      if (statusPill) statusPill.className = 'rc-status-pill playing';
+      if (statusIcon) statusIcon.setAttribute('icon', 'mdi:broadcast');
+      if (statusText) statusText.textContent = 'LIVE SYNC';
+
+      if (guideBanner) guideBanner.className = 'rc-guide-banner idle';
+      if (guideIcon) guideIcon.textContent = isLapSync ? '🏁' : '⏱️';
+      if (guideTitle) guideTitle.textContent = isLapSync ? 'LAP SYNC CALIBRATION (RECOMMENDED)' : 'SESSION LIVE CALIBRATION';
+      if (guideDesc) {
+        guideDesc.innerHTML = isLapSync
+          ? `Click <strong>START CALIBRATION</strong> during a race or sprint. Telemetry will arm and wait for the next lap completion to measure your broadcast delay.`
+          : `Click <strong>START CALIBRATION</strong> before the race start. Telemetry will begin timing at lights out so you can match on your TV.`;
+      }
+
+      if (calBtn) {
+        calBtn.className = 'rc-button load';
+        if (calIcon) calIcon.setAttribute('icon', 'mdi:timer-outline');
+        if (calText) calText.textContent = 'START CALIBRATION';
+      }
+
+      if (matchBtn) {
+        matchBtn.disabled = false;
+        matchBtn.classList.remove('pulse-anim');
+        if (matchText) matchText.textContent = 'MATCH DELAY (TV NOW)';
+      }
+
+      if (stopwatchPanel) stopwatchPanel.style.display = 'none';
+
+      if (lastResultEl) {
+        if (lastResult && lastResult.seconds !== undefined) {
+          lastResultEl.style.display = 'block';
+          lastResultEl.innerHTML = `✓ Last sync: <strong>${lastResult.seconds}s</strong> delay locked (${lastResult.completed_at ? new Date(lastResult.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recent'})`;
+        } else {
+          lastResultEl.style.display = 'none';
+        }
+      }
     }
   }
 
   getCardSize() {
-    return 3;
+    return 4;
   }
 }
 
@@ -680,7 +1065,7 @@ class F1LiveControlCardEditor extends HTMLElement {
 
   _updateContent() {
     if (!this._config) return;
-    const fields = ['kicker', 'title', 'subtitle', 'delay_entity', 'calibration_entity', 'match_button_entity', 'reference_entity'];
+    const fields = ['kicker', 'title', 'subtitle', 'delay_entity', 'calibration_entity', 'match_button_entity', 'reference_entity', 'lap_count_entity'];
     fields.forEach(id => {
       const el = this.querySelector(`#${id}`);
       if (el && !this._isFocused(el)) {
@@ -727,15 +1112,15 @@ class F1LiveControlCardEditor extends HTMLElement {
       <div class="card-config">
         <div class="form-row">
           <label for="kicker">Header Kicker</label>
-          <input type="text" id="kicker" value="${this._config.kicker || ''}" placeholder="SESSION TELEMETRY SYNC">
+          <input type="text" id="kicker" value="${this._config.kicker || 'SESSION TELEMETRY SYNC'}" placeholder="SESSION TELEMETRY SYNC">
         </div>
         <div class="form-row">
           <label for="title">Title</label>
-          <input type="text" id="title" value="${this._config.title || 'Live TV Synchronisation'}">
+          <input type="text" id="title" value="${this._config.title || 'LIVE TV SYNCHRONISATION'}">
         </div>
         <div class="form-row">
           <label for="subtitle">Subtitle</label>
-          <input type="text" id="subtitle" value="${this._config.subtitle || ''}" placeholder="DELAY CALIBRATION & OFFSET">
+          <input type="text" id="subtitle" value="${this._config.subtitle || 'DELAY CALIBRATION & LAP SYNC'}" placeholder="DELAY CALIBRATION & LAP SYNC">
         </div>
         <div class="form-row">
           <label for="delay_entity">Delay Number Entity</label>
@@ -752,6 +1137,10 @@ class F1LiveControlCardEditor extends HTMLElement {
         <div class="form-row">
           <label for="reference_entity">Reference Select Entity</label>
           <input type="text" id="reference_entity" value="${this._config.reference_entity || 'select.f1_live_delay_reference'}">
+        </div>
+        <div class="form-row">
+          <label for="lap_count_entity">Race Lap Count Entity</label>
+          <input type="text" id="lap_count_entity" value="${this._config.lap_count_entity || 'sensor.f1_race_lap_count'}">
         </div>
       </div>
     `;
@@ -772,6 +1161,7 @@ class F1LiveControlCardEditor extends HTMLElement {
       calibration_entity: this.querySelector('#calibration_entity')?.value ?? 'switch.f1_delay_calibration',
       match_button_entity: this.querySelector('#match_button_entity')?.value ?? 'button.f1_match_live_delay',
       reference_entity: this.querySelector('#reference_entity')?.value ?? 'select.f1_live_delay_reference',
+      lap_count_entity: this.querySelector('#lap_count_entity')?.value ?? 'sensor.f1_race_lap_count',
     });
     this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: newConfig },
@@ -781,10 +1171,6 @@ class F1LiveControlCardEditor extends HTMLElement {
   }
 }
 
-/**
- * F1 Session Mode Toggle Card (f1-mode-toggle-card)
- * Companion 2-way segmented pill button to switch between LIVE SESSION and REPLAY MODE.
- */
 class F1ModeToggleCard extends HTMLElement {
   constructor() {
     super();
@@ -1209,7 +1595,7 @@ if (!customElements.get('f1-live-control-card')) {
     preview: true,
   });
   console.info(
-    '%c F1-LIVE-CONTROL-CARD %c v2.1.2 ',
+    '%c F1-LIVE-CONTROL-CARD %c v2.3.0 ',
     'color: white; background: #e10600; font-weight: 700;',
     'color: #040711; background: #38bdf8; font-weight: 700;'
   );
